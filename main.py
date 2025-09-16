@@ -11,7 +11,24 @@ try:
 except locale.Error:
     print("Locale 'es_ES.UTF-8' no encontrado. Las fechas podrían aparecer en inglés.")
 
-# --- INTENTS (Sin cambios) ---
+# --- PRECIOS ---
+PRECIOS_POR_NOCHE = {
+    "Sencilla": 1500,
+    "Doble": 2200,
+    "Suite": 3500
+}
+
+# --- LISTA DE DESTINOS VÁLIDOS ---
+ESTADOS_DE_MEXICO = [
+    "aguascalientes", "baja california", "baja california sur", "campeche",
+    "chiapas", "chihuahua", "coahuila", "colima", "ciudad de méxico", "cdmx",
+    "durango", "guanajuato", "guerrero", "hidalgo", "jalisco", "méxico",
+    "michoacán", "morelos", "nayarit", "nuevo león", "oaxaca", "puebla",
+    "querétaro", "quintana roo", "san luis potosí", "sinaloa", "sonora",
+    "tabasco", "tamaulipas", "tlaxcala", "veracruz", "yucatán", "zacatecas"
+]
+
+# --- INTENTS ---
 intents = {
     "saludos": {
         "patterns": [
@@ -92,7 +109,6 @@ intents = {
         r"(?i)\b(modificar|cambiar|consultar|ver|eliminar|cancelar|gestionar).*(reserva|reservaci[oó]n|estancia)\b"], },
     "capture_folio": {"patterns": [r"(R\d{5})"], },
     "no_folio": {"patterns": [r"(?i)no\s?tengo"], },
-
     "affirmative": {
         "patterns": [
             r"(?i)\b(s[ií]|correcto|confirma|acepto|smn|simon|claro|por supuesto|adelante|sep|sip|efectivamente|as[ií] es)\b"],
@@ -103,22 +119,23 @@ intents = {
     "cancel_action": {
         "patterns": [r"(?i)\b(cancela|cancelar|detén|ya no|mejor no|olvídalo)\b"],
     },
-    "capture_number": {
-        "patterns": [r"\b(\d+)\b"],
-    },
-    "capture_room_type": {
-        "patterns": [r"(?i)(sencilla|doble|suite)"],
-    },
+    "capture_number": {"patterns": [r"\b(\d+)\b"], },
+    "capture_room_type": {"patterns": [r"(?i)(sencilla|doble|suite)"], },
     "capture_full_name": {"patterns": [r"(?i)([A-ZÁÉÍÓÚÑ][a-zñáéíóú]+(?:\s[A-ZÁÉÍÓÚÑ][a-zñáéíóú]+)+)"]},
     "capture_email": {"patterns": [r"([\w\.-]+@[\w\.-]+\.\w{2,})"]},
     "capture_phone": {"patterns": [r"^\s*(\d{2}[-.\s]?\d{4}[-.\s]?\d{4})\s*$"]},
+
+    # #############################################################################
+    # #####                     INICIO DE LA MEJORA                           #####
+    # #############################################################################
     "precios": {
         "patterns": [r"(?i)\b(precio|cu[aá]nto cuesta|tarifa[s]?|costo)\b"],
-        "responses": [
-            "Nuestras tarifas varían según la fecha y el tipo de habitación. ¿Te interesa una habitación Sencilla o Doble para darte un estimado?",
-            "Los costos pueden cambiar, pero con gusto te doy información. ¿Buscas algún tipo de habitación en particular?"
-        ]
+        # Se eliminan las respuestas estáticas para manejarlo con una función
     },
+    # #############################################################################
+    # #####                       FIN DE LA MEJORA                            #####
+    # #############################################################################
+
     "checkin_checkout": {
         "patterns": [r"(?i)\b(check-?in|check-out|entrada|salida|horario)\b"],
         "responses": [
@@ -160,15 +177,19 @@ intents = {
     }
 }
 
-# --- ESTADOS DEL CHATBOT (ACTUALIZADOS) ---
+# --- ESTADOS DEL CHATBOT ---
 states = {
     "GENERAL": "GENERAL", "END": "END",
+    # Flujo de precios
+    "PRICE_INQUIRY_POST": "PRICE_INQUIRY_POST",
     # Flujo de creación de reserva
+    "AWAITING_STATE": "AWAITING_STATE",
     "AWAITING_CHECKIN": "AWAITING_CHECKIN",
     "AWAITING_CHECKOUT": "AWAITING_CHECKOUT",
     "AWAITING_ADULTS": "AWAITING_ADULTS",
     "AWAITING_CHILDREN": "AWAITING_CHILDREN",
     "AWAITING_ROOM_CHOICE": "AWAITING_ROOM_CHOICE",
+    "AWAITING_NUM_ROOMS": "AWAITING_NUM_ROOMS",
     "AWAITING_GUEST_NAME": "AWAITING_GUEST_NAME",
     "AWAITING_GUEST_EMAIL": "AWAITING_GUEST_EMAIL",
     "AWAITING_GUEST_PHONE": "AWAITING_GUEST_PHONE",
@@ -181,16 +202,18 @@ states = {
     "MANAGE_CONFIRM_DELETE": "MANAGE_CONFIRM_DELETE",
     # Sub-flujo de MODIFICACIÓN
     "MODIFY_CHOOSING_FIELD": "MODIFY_CHOOSING_FIELD",
+    "MODIFY_AWAITING_NEW_STATE": "MODIFY_AWAITING_NEW_STATE",
     "MODIFY_AWAITING_NEW_CHECKIN": "MODIFY_AWAITING_NEW_CHECKIN",
     "MODIFY_AWAITING_NEW_CHECKOUT": "MODIFY_AWAITING_NEW_CHECKOUT",
     "MODIFY_AWAITING_NEW_ADULTS": "MODIFY_AWAITING_NEW_ADULTS",
     "MODIFY_AWAITING_NEW_CHILDREN": "MODIFY_AWAITING_NEW_CHILDREN",
     "MODIFY_AWAITING_NEW_ROOM": "MODIFY_AWAITING_NEW_ROOM",
+    "MODIFY_AWAITING_NEW_NUM_ROOMS": "MODIFY_AWAITING_NEW_NUM_ROOMS",
     "MANAGE_POST_MODIFY_OPTIONS": "MANAGE_POST_MODIFY_OPTIONS",
 }
 
 
-# --- FUNCIONES AUXILIARES (Sin cambios) ---
+# --- FUNCIONES AUXILIARES ---
 def parse_relative_date(text: str) -> date | None:
     today = date.today()
     text = text.lower()
@@ -214,7 +237,6 @@ def parse_relative_date(text: str) -> date | None:
         month = months.get(month_name, today.month) if month_name else today.month
         year = today.year
 
-        # Si la fecha ya pasó este año, asumimos que es del próximo año
         try:
             parsed_date = date(year, month, day)
             if parsed_date < today:
@@ -236,24 +258,33 @@ def convertir_palabra_a_numero(palabra: str) -> int | None:
 
 
 def get_number_from_input(user_input: str) -> int | None:
-    """Extrae un número de un texto, ya sea dígito o palabra."""
-    # Primero busca dígitos
     if match := re.search(r"\b(\d+)\b", user_input):
         return int(match.group(1))
-    # Si no, busca palabras
     return convertir_palabra_a_numero(user_input)
 
 
-# --- MANEJO DE ARCHIVO CSV (Sin cambios) ---
+def calculate_total_cost(check_in, check_out, room_type, num_rooms):
+    if isinstance(check_in, str):
+        check_in = datetime.strptime(check_in, '%Y-%m-%d').date()
+    if isinstance(check_out, str):
+        check_out = datetime.strptime(check_out, '%Y-%m-%d').date()
+
+    num_nights = (check_out - check_in).days
+    price_per_night = PRECIOS_POR_NOCHE.get(room_type, 0)
+    total_cost = num_nights * price_per_night * int(num_rooms)
+    return total_cost
+
+
+# --- MANEJO DE ARCHIVO CSV ---
 RESERVATIONS_FILE = "reservaciones.csv"
-FIELDNAMES = ['folio', 'nombre_huesped', 'email', 'telefono', 'check_in', 'check_out', 'adultos', 'ninos',
-              'tipo_habitacion']
+FIELDNAMES = ['folio', 'nombre_huesped', 'email', 'telefono', 'estado', 'check_in', 'check_out',
+              'adultos', 'ninos', 'tipo_habitacion', 'num_habitaciones', 'costo_total']
 
 
 def save_reservation_to_csv(details: dict):
     filepath = RESERVATIONS_FILE
     fieldnames = FIELDNAMES
-    file_exists = os.path.isfile(filepath)
+    file_exists = os.path.isfile(filepath) and os.path.getsize(filepath) > 0
     try:
         with open(filepath, 'a', newline='', encoding='utf-8') as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -265,24 +296,15 @@ def save_reservation_to_csv(details: dict):
 
 
 def find_reservations(folio=None, nombre=None, email=None):
-    """
-    Busca reservaciones en el archivo CSV.
-    - Si se proveen argumentos (folio, nombre, email), filtra los resultados.
-    - Si NO se proveen argumentos, devuelve TODAS las reservaciones.
-    """
     if not os.path.exists(RESERVATIONS_FILE):
         return []
 
     try:
         with open(RESERVATIONS_FILE, 'r', newline='', encoding='utf-8') as csvfile:
-            # Usamos list() para consumir el iterador y poder re-usarlo.
             all_rows = list(csv.DictReader(csvfile))
-
-            # Si no hay criterios de búsqueda, devolver.
             if not folio and not nombre and not email:
                 return all_rows
 
-            # Si hay criterios de búsqueda, filtrar como antes.
             results = []
             for row in all_rows:
                 match_folio = folio and row.get('folio', '').lower() == folio.lower()
@@ -290,7 +312,7 @@ def find_reservations(folio=None, nombre=None, email=None):
 
                 if match_folio:
                     results.append(row)
-                    continue  # Si coincide el folio, no necesitamos más checks
+                    continue
 
                 if match_name:
                     if email:
@@ -300,7 +322,6 @@ def find_reservations(folio=None, nombre=None, email=None):
                         results.append(row)
             return results
     except (IOError, FileNotFoundError, StopIteration):
-        # StopIteration puede ocurrir si el archivo está vacío pero con cabecera
         return []
 
 
@@ -314,35 +335,32 @@ def update_reservations_file(reservations_list):
         print(f"Error al actualizar el archivo de reservaciones: {e}")
 
 
-# --- CLASE PRINCIPAL DEL CHATBOT (LÓGICA MEJORADA) ---
+# --- CLASE PRINCIPAL DEL CHATBOT ---
 class ChatBot:
     def __init__(self):
         self.state = states["GENERAL"]
         self.user_name = None
         self.reservation_details = {}
-        # Atributos para el flujo de gestión
         self.active_reservation = None
         self.found_reservations = []
-        # Atributos temporales para modificación
         self.temp_data = {}
 
     def find_match(self, user_message):
-        # Lógica de intents específicos al estado
-        if self.state == "AWAITING_GUEST_EMAIL": return "capture_email", user_message
+        if self.state in ["AWAITING_GUEST_EMAIL", "MANAGE_AWAITING_EMAIL"]: return "capture_email", user_message
         if self.state == "AWAITING_GUEST_PHONE": return "capture_phone", user_message
         if self.state == "AWAITING_GUEST_NAME": return "capture_full_name", user_message
         if self.state == "GENERAL" and (
                 match := re.search(intents['capture_name']['patterns'][0], user_message, re.IGNORECASE)):
             return "capture_name", match.group(1)
-        if self.state == "AWAITING_ROOM_CHOICE" and (
+        if self.state in ["AWAITING_ROOM_CHOICE", "PRICE_INQUIRY_POST"] and (
                 match := re.search(r"(sencilla|doble|suite)", user_message.lower())):
             return "capture_room_type", match.group(1)
-        if self.state in ["AWAITING_ADULTS", "AWAITING_CHILDREN", "MODIFY_AWAITING_NEW_ADULTS",
-                          "MODIFY_AWAITING_NEW_CHILDREN"]:
-            if get_number_from_input(user_message) is not None:
-                return "capture_number", get_number_from_input(user_message)
+        if self.state in ["AWAITING_ADULTS", "AWAITING_CHILDREN", "AWAITING_NUM_ROOMS",
+                          "MODIFY_AWAITING_NEW_ADULTS", "MODIFY_AWAITING_NEW_CHILDREN",
+                          "MODIFY_AWAITING_NEW_NUM_ROOMS"]:
+            if (num := get_number_from_input(user_message)) is not None:
+                return "capture_number", num
 
-        # Lógica de intents generales
         for intent, data in intents.items():
             for pattern in data.get("patterns", []):
                 if match := re.search(pattern, user_message, re.IGNORECASE):
@@ -351,7 +369,6 @@ class ChatBot:
 
     def _build_reservation_summary(self, res_dict):
         try:
-            # Formatear fechas si son objetos date, si no, dejarlas como están (string del CSV)
             check_in_str = res_dict.get('check_in')
             check_out_str = res_dict.get('check_out')
 
@@ -365,46 +382,72 @@ class ChatBot:
             else:
                 check_out_fmt = datetime.strptime(check_out_str, '%Y-%m-%d').strftime('%A, %d de %B de %Y')
 
+            costo_total_str = f"${float(res_dict.get('costo_total', 0)):,.2f} MXN"
+
             return f"""
     Folio: {res_dict.get('folio', 'N/A')}
     👤 Nombre: {res_dict.get('nombre_huesped', 'N/A')}
     📧 Email: {res_dict.get('email', 'N/A')}
     📞 Teléfono: {res_dict.get('telefono', 'N/A')}
-    🏨 Habitación: {res_dict.get('tipo_habitacion', 'N/A')}
+    📍 Destino: {res_dict.get('estado', 'N/A')}
+    🏨 Habitación: {res_dict.get('tipo_habitacion', 'N/A')} (x{res_dict.get('num_habitaciones', 'N/A')})
     👥 Adultos: {res_dict.get('adultos', 'N/A')}, Niños: {res_dict.get('ninos', 'N/A')}
     ➡️ Check-in: {check_in_fmt}
-    ⬅️ Check-out: {check_out_fmt}"""
+    ⬅️ Check-out: {check_out_fmt}
+    💰 Costo Total Estimado: {costo_total_str}"""
         except (ValueError, TypeError) as e:
-            # Fallback por si la fecha tiene un formato inesperado
             return f"\nError al mostrar resumen: {e}. Datos brutos: {res_dict}"
 
-    def _save_active_reservation(self):
-        """Función centralizada para guardar la reserva activa en el CSV."""
+    def _recalculate_and_save_active_reservation(self):
+        self.active_reservation['costo_total'] = calculate_total_cost(
+            self.active_reservation['check_in'],
+            self.active_reservation['check_out'],
+            self.active_reservation['tipo_habitacion'],
+            self.active_reservation['num_habitaciones']
+        )
         all_reservations = find_reservations()
-        updated_list = []
-        for res in all_reservations:
-            if res['folio'] == self.active_reservation['folio']:
-                updated_list.append(self.active_reservation)
-            else:
-                updated_list.append(res)
+        updated_list = [self.active_reservation if res['folio'] == self.active_reservation['folio'] else res for res in
+                        all_reservations]
         update_reservations_file(updated_list)
+
         self.state = states["MANAGE_POST_MODIFY_OPTIONS"]
         summary = self._build_reservation_summary(self.active_reservation)
         return f"¡Listo! He actualizado tu reservación. Aquí están los nuevos datos:\n{summary}\n\n¿Deseas modificar algo más? (sí/no)"
 
+    def handle_price_flow(self, intent, matched_value, user_input):
+        if self.state == states["PRICE_INQUIRY_POST"]:
+            if intent == "affirmative":
+                self.state = states["AWAITING_STATE"]
+                self.reservation_details = {}
+                return "¡Excelente! Comencemos. ¿Para qué estado de la república te gustaría reservar?"
+            elif intent == "negative_simple":
+                self.state = states["GENERAL"]
+                return "Entendido. ¿Hay algo más en lo que pueda ayudarte?"
+            else:
+                return "Disculpa, no entendí. ¿Te gustaría que iniciemos una reservación? (sí/no)"
+        return random.choice(intents["fallback"]["responses"])
+
     def handle_reservation_flow(self, intent, matched_value, user_input):
-        if self.state == states["AWAITING_CHECKIN"]:
+        if self.state == states["AWAITING_STATE"]:
+            normalized_input = user_input.lower()
+            if normalized_input in ESTADOS_DE_MEXICO:
+                self.reservation_details["estado"] = user_input.title()
+                self.state = states["AWAITING_CHECKIN"]
+                return "¡Perfecto! Ahora, ¿para qué fecha sería tu llegada (check-in)?"
+            else:
+                return "Lo siento, ese no es un estado válido en México. Por favor, intenta de nuevo."
+        elif self.state == states["AWAITING_CHECKIN"]:
             parsed_date = parse_relative_date(user_input)
             if not parsed_date or parsed_date < date.today():
-                return "Esa fecha no es válida. Por favor, dime una fecha de llegada futura (como 'mañana' o 'el próximo sábado')."
+                return "Esa fecha no es válida. Por favor, dime una fecha de llegada futura."
             self.reservation_details["check_in"] = parsed_date
             self.state = states["AWAITING_CHECKOUT"]
-            return f"Entendido, llegada el {parsed_date.strftime('%A %d de %B')}. Ahora, ¿cuál sería tu fecha de salida?"
+            return f"Entendido, llegada el {parsed_date.strftime('%A %d de %B')}. ¿Cuál sería tu fecha de salida?"
 
         elif self.state == states["AWAITING_CHECKOUT"]:
             parsed_date = parse_relative_date(user_input)
             if not parsed_date or parsed_date <= self.reservation_details["check_in"]:
-                return "La fecha de salida debe ser posterior a la de llegada. Por favor, dime una fecha de salida válida."
+                return "La fecha de salida debe ser posterior a la de llegada."
             self.reservation_details["check_out"] = parsed_date
             self.state = states["AWAITING_ADULTS"]
             return f"Perfecto. Tu estancia es del {self.reservation_details['check_in'].strftime('%d de %B')} al {parsed_date.strftime('%d de %B')}. ¿Cuántos adultos se hospedarán?"
@@ -413,7 +456,7 @@ class ChatBot:
             if intent == "capture_number":
                 self.reservation_details["adultos"] = str(matched_value)
                 self.state = states["AWAITING_CHILDREN"]
-                return f"Anotado, {matched_value} adultos. ¿Viaja algún niño? (Si no, simplemente di 'cero' o 'no')."
+                return f"Anotado, {matched_value} adultos. ¿Viaja algún niño? (Si no, di 'cero')."
             return "No entendí el número. ¿Podrías decirlo de nuevo?"
 
         elif self.state == states["AWAITING_CHILDREN"]:
@@ -424,111 +467,108 @@ class ChatBot:
                 num_children = "0"
             self.reservation_details["ninos"] = num_children
             self.state = states["AWAITING_ROOM_CHOICE"]
-            return "Gracias. Tenemos: \n    1. Sencilla\n    2. Doble\n    3. Suite\n¿Cuál prefieres?"
+            return "Gracias. Tenemos: \n    1. Sencilla\n    2. Doble\n    3. Suite\n¿Qué tipo de habitación prefieres?"
 
         elif self.state == states["AWAITING_ROOM_CHOICE"]:
             room_options = {"1": "Sencilla", "2": "Doble", "3": "Suite", "sencilla": "Sencilla", "doble": "Doble",
                             "suite": "Suite"}
             selection = re.search(r"(sencilla|doble|suite|\d+)", user_input.lower())
-            if selection and room_options.get(selection.group(0)):
-                self.reservation_details["tipo_habitacion"] = room_options[selection.group(0)]
-                self.state = states["AWAITING_GUEST_NAME"]
-                return "¡Muy bien! Ya casi terminamos. ¿A nombre de quién hago la reservación (nombre y apellido)?"
+            if selection and (room := room_options.get(selection.group(0))):
+                self.reservation_details["tipo_habitacion"] = room
+                self.state = states["AWAITING_NUM_ROOMS"]
+                return f"Excelente elección: {room}. ¿Cuántas habitaciones de este tipo necesitas?"
             return "No reconocí esa opción. Por favor, elige Sencilla, Doble o Suite."
 
+        elif self.state == states["AWAITING_NUM_ROOMS"]:
+            if intent == "capture_number" and matched_value > 0:
+                self.reservation_details["num_habitaciones"] = str(matched_value)
+                self.state = states["AWAITING_GUEST_NAME"]
+                return "¡Muy bien! Ya casi terminamos. ¿A nombre de quién hago la reservación?"
+            return "Por favor, dime un número válido de habitaciones."
+
         elif self.state == states["AWAITING_GUEST_NAME"]:
-            self.reservation_details['nombre_huesped'] = user_input
+            self.reservation_details['nombre_huesped'] = user_input.title()
             if not self.user_name: self.user_name = user_input.split()[0]
             self.state = states["AWAITING_GUEST_EMAIL"]
-            return f"Gracias, {user_input.split()[0]}. Ahora, ¿cuál es tu correo electrónico?"
+            return f"Gracias, {user_input.split()[0]}. ¿Cuál es tu correo electrónico?"
 
         elif self.state == states["AWAITING_GUEST_EMAIL"]:
             if intent == "capture_email":
                 self.reservation_details['email'] = matched_value
                 self.state = states["AWAITING_GUEST_PHONE"]
-                return "Correo guardado. Por último, ¿nos podrías dar un número de teléfono de contacto?"
+                return "Correo guardado. Por último, ¿nos podrías dar un teléfono de contacto?"
             return "Ese correo no parece válido. ¿Podrías verificarlo?"
 
         elif self.state == states["AWAITING_GUEST_PHONE"]:
             if intent == "capture_phone":
                 self.reservation_details['telefono'] = matched_value
+
+                self.reservation_details['costo_total'] = calculate_total_cost(
+                    self.reservation_details['check_in'],
+                    self.reservation_details['check_out'],
+                    self.reservation_details['tipo_habitacion'],
+                    self.reservation_details['num_habitaciones']
+                )
+
                 self.state = states["AWAITING_CONFIRMATION"]
-                summary = self._build_reservation_summary({
-                    **self.reservation_details,
-                    'check_in': self.reservation_details['check_in'],
-                    'check_out': self.reservation_details['check_out']
-                })
-                return f"¡Excelente! Revisa por última vez que todo esté en orden:\n{summary}\n\n¿Confirmo la reservación?"
-            return "No parece un número de teléfono válido. Intenta de nuevo, por favor."
+                summary = self._build_reservation_summary(self.reservation_details)
+                return f"¡Excelente! Revisa que todo esté en orden:\n{summary}\n\n¿Confirmo la reservación?"
+            return "No parece un número de teléfono válido."
 
         elif self.state == states["AWAITING_CONFIRMATION"]:
             if intent == "affirmative":
                 folio = f"R{random.randint(10000, 99999)}"
                 self.reservation_details['folio'] = folio
-                # Convertir fechas a string antes de guardar
                 self.reservation_details['check_in'] = self.reservation_details['check_in'].strftime('%Y-%m-%d')
                 self.reservation_details['check_out'] = self.reservation_details['check_out'].strftime('%Y-%m-%d')
 
                 save_reservation_to_csv(self.reservation_details)
                 guest_name = self.reservation_details.get('nombre_huesped')
                 self.state, self.reservation_details = states["GENERAL"], {}
-                return f"¡Listo! Tu reservación a nombre de {guest_name} está confirmada con el folio {folio}. ¡Gracias por tu preferencia!"
+                return f"¡Listo! Tu reservación a nombre de {guest_name} está confirmada con el folio {folio}. ¡Gracias!"
             else:
                 self.state, self.reservation_details = states["GENERAL"], {}
                 return "Entendido. He cancelado el proceso."
         return random.choice(intents["fallback"]["responses"])
 
     def handle_management_flow(self, intent, matched_value, user_input):
-        # --- Flujo de Búsqueda ---
-        if self.state == states["MANAGE_AWAITING_FOLIO"]:
-            if intent == "capture_folio":
-                self.found_reservations = find_reservations(folio=matched_value)
-            elif intent == "no_folio":
-                self.state = states["MANAGE_AWAITING_NAME"]
-                return "No hay problema. ¿A nombre de quién está la reservación (nombre completo)?"
-            else:
-                return "Por favor, dime un número de folio (ej. R12345) o di 'no tengo folio'."
+        if self.state in [states["MANAGE_AWAITING_FOLIO"], states["MANAGE_AWAITING_NAME"],
+                          states["MANAGE_AWAITING_EMAIL"]]:
+            if self.state == states["MANAGE_AWAITING_FOLIO"]:
+                if intent == "capture_folio":
+                    self.found_reservations = find_reservations(folio=matched_value)
+                elif intent == "no_folio":
+                    self.state = states["MANAGE_AWAITING_NAME"]
+                    return "No hay problema. ¿A nombre de quién está la reservación?"
+                else:
+                    return "Por favor, dime un número de folio (ej. R12345) o di 'no tengo folio'."
 
-            if len(self.found_reservations) == 1:
-                self.active_reservation = self.found_reservations[0]
-                self.state = states["MANAGE_SHOWING_OPTIONS"]
-                return f"¡Reservación encontrada!{self._build_reservation_summary(self.active_reservation)}\n\n¿Qué deseas hacer?\n    1. Modificar\n    2. Eliminar"
-            else:
-                self.state, self.found_reservations = states["GENERAL"], []
-                return "No encontré ese folio. Te regreso al menú principal para que intentes de nuevo."
+            elif self.state == states["MANAGE_AWAITING_NAME"]:
+                self.found_reservations = find_reservations(nombre=user_input)
 
-        elif self.state == states["MANAGE_AWAITING_NAME"]:
-            self.found_reservations = find_reservations(nombre=user_input)
+            elif self.state == states["MANAGE_AWAITING_EMAIL"]:
+                if intent != "capture_email": return "No parece un email válido."
+                self.found_reservations = find_reservations(nombre=self.active_reservation['nombre_huesped'],
+                                                            email=matched_value)
+
             if not self.found_reservations:
-                return "No encontré reservaciones a ese nombre. ¿Quieres intentar con otro?"
-            elif len(self.found_reservations) == 1:
+                return "No encontré reservaciones con esos datos. ¿Quieres intentar de nuevo?"
+            elif len(self.found_reservations) > 1 and self.state != states["MANAGE_AWAITING_EMAIL"]:
+                self.active_reservation = {'nombre_huesped': user_input}
+                self.state = states["MANAGE_AWAITING_EMAIL"]
+                return "Encontré varias reservaciones. Para confirmar, ¿cuál es tu correo electrónico?"
+            else:
                 self.active_reservation = self.found_reservations[0]
                 self.state = states["MANAGE_SHOWING_OPTIONS"]
                 return f"¡Reservación encontrada!{self._build_reservation_summary(self.active_reservation)}\n\n¿Qué deseas hacer?\n    1. Modificar\n    2. Eliminar"
-            else:
-                self.state = states["MANAGE_AWAITING_EMAIL"]
-                return "Encontré varias reservaciones con ese nombre. Para confirmar, ¿cuál es tu correo electrónico?"
 
-        elif self.state == states["MANAGE_AWAITING_EMAIL"]:
-            if intent != "capture_email": return "No parece un email válido, intenta de nuevo."
-            final_match = [res for res in self.found_reservations if
-                           res.get('email', '').lower() == matched_value.lower()]
-            if len(final_match) == 1:
-                self.active_reservation = final_match[0]
-                self.state = states["MANAGE_SHOWING_OPTIONS"]
-                return f"¡Reservación encontrada!{self._build_reservation_summary(self.active_reservation)}\n\n¿Qué deseas hacer?\n    1. Modificar\n    2. Eliminar"
-            else:
-                self.state, self.found_reservations = states["GENERAL"], []
-                return "Lo siento, no pude encontrar una reservación con esa combinación. Te regreso al menú principal."
-
-        # --- Flujo de Opciones (Modificar/Eliminar) ---
         elif self.state == states["MANAGE_SHOWING_OPTIONS"]:
             if "eliminar" in user_input.lower() or "2" in user_input:
                 self.state = states["MANAGE_CONFIRM_DELETE"]
                 return "¿Estás seguro de que quieres ELIMINAR tu reservación? Esta acción no se puede deshacer."
             elif "modificar" in user_input.lower() or "1" in user_input:
                 self.state = states["MODIFY_CHOOSING_FIELD"]
-                return "¿Qué dato te gustaría modificar?\n    1. Fechas (llegada y salida)\n    2. Número de Huéspedes (adultos y niños)\n    3. Tipo de Habitación"
+                return "¿Qué dato te gustaría modificar?\n    1. Fechas\n    2. Huéspedes\n    3. Habitación y Cantidad\n    4. Destino (Estado)"
             return "Por favor, elige una opción válida: 1. Modificar o 2. Eliminar."
 
         elif self.state == states["MANAGE_CONFIRM_DELETE"]:
@@ -541,84 +581,89 @@ class ChatBot:
                 self.state, self.active_reservation = states["GENERAL"], None
                 return f"Listo. La reservación {folio_eliminado} ha sido eliminada."
             else:
-                self.state = states["GENERAL"]
-                return "De acuerdo, no se ha eliminado nada. Volviendo al menú principal."
+                self.state, self.active_reservation = states["GENERAL"], None
+                return "De acuerdo, no se ha eliminado nada."
 
-        # --- SUB-FLUJO DE MODIFICACIÓN ---
-        # --- SUB-FLUJO DE MODIFICACIÓN (MÁS FLEXIBLE) ---
         elif self.state == states["MODIFY_CHOOSING_FIELD"]:
             user_input_lower = user_input.lower()
-            # Lista de palabras clave para cada opción
-            if any(keyword in user_input_lower for keyword in ["fecha", "fechas", "1"]):
+            if any(kw in user_input_lower for kw in ["fecha", "1"]):
                 self.state = states["MODIFY_AWAITING_NEW_CHECKIN"]
                 return "Entendido. ¿Cuál es la nueva fecha de llegada (check-in)?"
-
-            elif any(keyword in user_input_lower for keyword in
-                     ["huésped", "huesped", "huéspedes", "huespedes", "2"]):
+            elif any(kw in user_input_lower for kw in ["huésped", "huesped", "2"]):
                 self.state = states["MODIFY_AWAITING_NEW_ADULTS"]
                 return "De acuerdo. ¿Cuál es el nuevo número de adultos?"
-
-            elif any(keyword in user_input_lower for keyword in ["habitación", "habitacion", "cuarto", "3"]):
+            elif any(kw in user_input_lower for kw in ["habitación", "habitacion", "cantidad", "3"]):
                 self.state = states["MODIFY_AWAITING_NEW_ROOM"]
                 return "Perfecto. ¿Cuál es el nuevo tipo de habitación? (Sencilla, Doble, Suite)"
+            elif any(kw in user_input_lower for kw in ["destino", "estado", "4"]):
+                self.state = states["MODIFY_AWAITING_NEW_STATE"]
+                return "Entendido, ¿cuál es el nuevo estado de destino?"
+            return "Por favor, elige una opción válida."
 
-            return "Por favor, elige una opción válida: 1. Fechas, 2. Huéspedes o 3. Habitación."
+        elif self.state == states["MODIFY_AWAITING_NEW_STATE"]:
+            normalized_input = user_input.lower()
+            if normalized_input in ESTADOS_DE_MEXICO:
+                self.active_reservation['estado'] = user_input.title()
+                return self._recalculate_and_save_active_reservation()
+            else:
+                self.state = states["MANAGE_POST_MODIFY_OPTIONS"]  # Regresar a opciones
+                return "Ese no es un estado válido. La modificación del destino fue cancelada. ¿Deseas modificar otro dato?"
 
-        # Modificar Fechas
         elif self.state == states["MODIFY_AWAITING_NEW_CHECKIN"]:
             new_checkin = parse_relative_date(user_input)
             if not new_checkin or new_checkin < date.today():
                 return "Fecha de llegada no válida. Intenta con una fecha futura."
             self.temp_data['check_in'] = new_checkin
             self.state = states["MODIFY_AWAITING_NEW_CHECKOUT"]
-            return f"Nueva llegada: {new_checkin.strftime('%A %d de %B')}. Ahora, ¿cuál es la nueva fecha de salida (check-out)?"
+            return f"Nueva llegada: {new_checkin.strftime('%A %d de %B')}. Ahora, ¿la nueva fecha de salida?"
 
         elif self.state == states["MODIFY_AWAITING_NEW_CHECKOUT"]:
             new_checkout = parse_relative_date(user_input)
             if not new_checkout or new_checkout <= self.temp_data['check_in']:
-                return "La fecha de salida debe ser posterior a la nueva fecha de llegada. Inténtalo de nuevo."
+                return "La fecha de salida debe ser posterior a la nueva llegada."
             self.active_reservation['check_in'] = self.temp_data['check_in'].strftime('%Y-%m-%d')
             self.active_reservation['check_out'] = new_checkout.strftime('%Y-%m-%d')
             self.temp_data = {}
-            return self._save_active_reservation()
+            return self._recalculate_and_save_active_reservation()
 
-        # Modificar Huéspedes
         elif self.state == states["MODIFY_AWAITING_NEW_ADULTS"]:
             if intent == "capture_number":
                 self.temp_data['adultos'] = str(matched_value)
                 self.state = states["MODIFY_AWAITING_NEW_CHILDREN"]
-                return f"Nuevo número de adultos: {matched_value}. Ahora, ¿cuál es el nuevo número de niños? (Si no hay, di 'cero')."
+                return f"Adultos: {matched_value}. ¿Y el nuevo número de niños?"
             return "No entendí el número. ¿Cuántos adultos serán?"
 
         elif self.state == states["MODIFY_AWAITING_NEW_CHILDREN"]:
             num_children = "0"
-            if intent == "capture_number":
-                num_children = str(matched_value)
-            elif intent == "negative_simple":
-                num_children = "0"
-
+            if intent == "capture_number": num_children = str(matched_value)
             self.active_reservation['adultos'] = self.temp_data['adultos']
             self.active_reservation['ninos'] = num_children
             self.temp_data = {}
-            return self._save_active_reservation()
+            return self._recalculate_and_save_active_reservation()
 
-        # Modificar Habitación
         elif self.state == states["MODIFY_AWAITING_NEW_ROOM"]:
             room_options = {"sencilla": "Sencilla", "doble": "Doble", "suite": "Suite"}
             selection = re.search(r"(sencilla|doble|suite)", user_input.lower())
-            if selection and room_options.get(selection.group(0)):
-                self.active_reservation['tipo_habitacion'] = room_options[selection.group(0)]
-                return self._save_active_reservation()
-            return "No reconocí esa habitación. Por favor, elige Sencilla, Doble o Suite."
+            if selection and (room := room_options.get(selection.group(0))):
+                self.temp_data['tipo_habitacion'] = room
+                self.state = states["MODIFY_AWAITING_NEW_NUM_ROOMS"]
+                return f"Nuevo tipo: {room}. ¿Cuántas habitaciones de este tipo serán?"
+            return "No reconocí esa habitación. Elige Sencilla, Doble o Suite."
 
-        # Opciones después de modificar
+        elif self.state == states["MODIFY_AWAITING_NEW_NUM_ROOMS"]:
+            if intent == "capture_number" and matched_value > 0:
+                self.active_reservation['tipo_habitacion'] = self.temp_data['tipo_habitacion']
+                self.active_reservation['num_habitaciones'] = str(matched_value)
+                self.temp_data = {}
+                return self._recalculate_and_save_active_reservation()
+            return "Por favor, dime un número válido de habitaciones."
+
         elif self.state == states["MANAGE_POST_MODIFY_OPTIONS"]:
             if intent == "affirmative":
                 self.state = states["MODIFY_CHOOSING_FIELD"]
-                return "¿Qué otro dato te gustaría modificar?\n    1. Fechas\n    2. Huéspedes\n    3. Habitación"
+                return "¿Qué otro dato quieres modificar?\n    1. Fechas\n    2. Huéspedes\n    3. Habitación y Cantidad\n    4. Destino"
             else:
-                self.state = states["GENERAL"]
-                self.active_reservation = None
+                self.state, self.active_reservation = states["GENERAL"], None
                 return "De acuerdo. ¿Hay algo más en lo que pueda ayudarte?"
 
         return random.choice(intents["fallback"]["responses"])
@@ -626,12 +671,13 @@ class ChatBot:
     def handle_message(self, user_input):
         intent, matched_value = self.find_match(user_input)
 
-        if intent == "cancel_action" and (
-                self.state.startswith("AWAITING") or self.state.startswith("MANAGE") or self.state.startswith(
-            "MODIFY")):
+        if intent == "cancel_action" and (self.state.startswith(("AWAITING", "MANAGE", "MODIFY", "PRICE"))):
             self.state, self.reservation_details, self.active_reservation, self.temp_data = states[
                 "GENERAL"], {}, None, {}
             return "Proceso cancelado. ¿Te puedo ayudar con otra cosa?"
+
+        if self.state.startswith("PRICE"):
+            return self.handle_price_flow(intent, matched_value, user_input)
 
         if self.state.startswith("AWAITING"):
             return self.handle_reservation_flow(intent, matched_value, user_input)
@@ -639,14 +685,25 @@ class ChatBot:
         if self.state.startswith("MANAGE") or self.state.startswith("MODIFY"):
             return self.handle_management_flow(intent, matched_value, user_input)
 
-        # --- LÓGICA GENERAL ---
         if intent == "reservas":
-            self.state, self.reservation_details = states["AWAITING_CHECKIN"], {}
-            return "¡Claro! Empecemos. ¿Para qué fecha sería tu llegada (check-in)?"
+            self.state, self.reservation_details = states["AWAITING_STATE"], {}
+            return "¡Claro! Empecemos. ¿Para qué estado de la república te gustaría reservar?"
+
+        # #############################################################################
+        # #####                     INICIO DE LA MEJORA                           #####
+        # #############################################################################
+        if intent == "precios":
+            self.state = states["PRICE_INQUIRY_POST"]
+            price_list = "\n".join(
+                [f"    - {tipo}: ${precio:,.2f} MXN por noche" for tipo, precio in PRECIOS_POR_NOCHE.items()])
+            return f"¡Con gusto! Nuestras tarifas base son:\n{price_list}\n\nEstos precios pueden variar. ¿Te gustaría iniciar una reservación con alguna de estas opciones?"
+        # #############################################################################
+        # #####                       FIN DE LA MEJORA                            #####
+        # #############################################################################
 
         if intent == "manage_reservation":
             self.state = states["MANAGE_AWAITING_FOLIO"]
-            return "Con gusto te ayudo a gestionar tu reservación. Por favor, dime tu número de folio (ej. R12345), o di 'no tengo folio'."
+            return "Con gusto te ayudo. Por favor, dime tu número de folio (ej. R12345), o di 'no tengo folio'."
 
         if intent == "capture_name": self.user_name = matched_value.capitalize(); return f"¡Mucho gusto, {self.user_name}!"
         if intent == "recall_name": return f"Claro, te llamas {self.user_name}." if self.user_name else "Aún no me has dicho tu nombre."
@@ -672,6 +729,7 @@ Escribe lo que necesites o elige una opción.
 ---------------------------------------------------------
 """
 
+"""
 if __name__ == "__main__":
     bot = ChatBot()
     print(welcome_menu)
@@ -687,3 +745,4 @@ if __name__ == "__main__":
 
         if bot.state == states["END"]:
             break
+"""

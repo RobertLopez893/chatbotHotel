@@ -1,3 +1,3 @@
-folio,nombre_huesped,email,telefono,check_in,check_out,adultos,ninos,tipo_habitacion
-R75176,rober,rober@gmail.com,55606060606,2025-10-08,2025-11-09,3,3,Doble
-R52012,mark,mark@gmail.com,9999999999,2025-09-17,2025-10-08,4,5,Sencilla
+folio,nombre_huesped,email,telefono,estado,check_in,check_out,adultos,ninos,tipo_habitacion,num_habitaciones,costo_total
+R55266,Rob,rob@gmail.com,5560689360,Baja California,2025-09-17,2025-11-08,8,9,Doble,3,343200
+R17564,Mark,mark@gmial.com,8080808080,Baja California,2025-09-17,2025-11-09,7,1,Suite,1,185500
