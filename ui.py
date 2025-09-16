@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import scrolledtext
-from main import ChatBot, welcome_menu  # Importamos tu clase ChatBot y el mensaje de bienvenida
+from main import ChatBot, welcome_menu
 
 BG_COLOR = "#FFFFFF"
 TEXT_COLOR = "#0D1B2A"

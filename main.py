@@ -18,7 +18,23 @@ PRECIOS_POR_NOCHE = {
     "Suite": 3500
 }
 
-# --- LISTA DE DESTINOS VÁLIDOS ---
+# --- HORARIOS ---
+HORARIOS_POR_ZONA = {
+    "Noroeste": {"check_in": "1:00 PM", "check_out": "11:00 AM"},  # UTC-8
+    "Pacífico": {"check_in": "2:00 PM", "check_out": "12:00 PM"},  # UTC-7
+    "Centro":   {"check_in": "3:00 PM", "check_out": "1:00 PM"},   # UTC-6
+    "Sureste":  {"check_in": "4:00 PM", "check_out": "2:00 PM"}    # UTC-5
+}
+
+# --- ZONAS ---
+ESTADOS_POR_ZONA = {
+    "baja california": "Noroeste",
+    "baja california sur": "Pacífico", "chihuahua": "Pacífico", "nayarit": "Pacífico", "sinaloa": "Pacífico", "sonora": "Pacífico",
+    "quintana roo": "Sureste"
+    # El resto de estados caen en "Centro" por defecto
+}
+
+# --- DESTINOS VÁLIDOS ---
 ESTADOS_DE_MEXICO = [
     "aguascalientes", "baja california", "baja california sur", "campeche",
     "chiapas", "chihuahua", "coahuila", "colima", "ciudad de méxico", "cdmx",
@@ -210,6 +226,10 @@ states = {
     "MODIFY_AWAITING_NEW_ROOM": "MODIFY_AWAITING_NEW_ROOM",
     "MODIFY_AWAITING_NEW_NUM_ROOMS": "MODIFY_AWAITING_NEW_NUM_ROOMS",
     "MANAGE_POST_MODIFY_OPTIONS": "MANAGE_POST_MODIFY_OPTIONS",
+    # Flujos para horarios
+    "AWAITING_CHECKIN_LOCATION_CHOICE": "AWAITING_CHECKIN_LOCATION_CHOICE",
+    "AWAITING_CHECKIN_STATE": "AWAITING_CHECKIN_STATE",
+    "AWAITING_CHECKIN_FOLIO": "AWAITING_CHECKIN_FOLIO",
 }
 
 
@@ -668,16 +688,61 @@ class ChatBot:
 
         return random.choice(intents["fallback"]["responses"])
 
+    def handle_checkin_flow(self, intent, matched_value, user_input):
+        if self.state == states["AWAITING_CHECKIN_LOCATION_CHOICE"]:
+            if "estado" in user_input.lower():
+                self.state = states["AWAITING_CHECKIN_STATE"]
+                return "¿De qué estado te gustaría saber los horarios?"
+            elif "folio" in user_input.lower():
+                self.state = states["AWAITING_CHECKIN_FOLIO"]
+                return "Claro, por favor, dime tu número de folio (ej. R12345)."
+            else:
+                return "Por favor, elige una opción: 'estado' o 'folio'."
+
+        elif self.state == states["AWAITING_CHECKIN_STATE"]:
+            normalized_input = user_input.lower()
+            if normalized_input in ESTADOS_DE_MEXICO:
+                zona = ESTADOS_POR_ZONA.get(normalized_input, "Centro")  # Default a Centro
+                horarios = HORARIOS_POR_ZONA[zona]
+                self.state = states["GENERAL"]
+                return f"Para el estado de {user_input.title()}, los horarios son:\n    - Check-in: {horarios['check_in']}\n    - Check-out: {horarios['check_out']}"
+            else:
+                self.state = states["GENERAL"]
+                return "Lo siento, no reconozco ese estado. Volviendo al menú principal."
+
+        elif self.state == states["AWAITING_CHECKIN_FOLIO"]:
+            if intent == "capture_folio":
+                reservations = find_reservations(folio=matched_value)
+                if reservations:
+                    estado = reservations[0].get("estado", "").lower()
+                    zona = ESTADOS_POR_ZONA.get(estado, "Centro")
+                    horarios = HORARIOS_POR_ZONA[zona]
+                    self.state = states["GENERAL"]
+                    return f"Según tu reserva en {estado.title()}, los horarios son:\n    - Check-in: {horarios['check_in']}\n    - Check-out: {horarios['check_out']}"
+                else:
+                    self.state = states["GENERAL"]
+                    return "No encontré ninguna reserva con ese folio. Volviendo al menú principal."
+            else:
+                self.state = states["GENERAL"]
+                return "Ese no parece un folio válido. Volviendo al menú principal."
+
+        return random.choice(intents["fallback"]["responses"])
+
     def handle_message(self, user_input):
         intent, matched_value = self.find_match(user_input)
 
-        if intent == "cancel_action" and (self.state.startswith(("AWAITING", "MANAGE", "MODIFY", "PRICE"))):
+        # 1. Revisa si el usuario quiere cancelar la acción actual
+        if intent == "cancel_action" and (self.state.startswith(("AWAITING", "MANAGE", "MODIFY", "PRICE", "CHECKIN"))):
             self.state, self.reservation_details, self.active_reservation, self.temp_data = states[
                 "GENERAL"], {}, None, {}
             return "Proceso cancelado. ¿Te puedo ayudar con otra cosa?"
 
+        # 2. ENRUTADOR: Si ya está en un flujo, dirige a la función correcta
         if self.state.startswith("PRICE"):
             return self.handle_price_flow(intent, matched_value, user_input)
+
+        if self.state.startswith("AWAITING_CHECKIN_"):
+            return self.handle_checkin_flow(intent, matched_value, user_input)
 
         if self.state.startswith("AWAITING"):
             return self.handle_reservation_flow(intent, matched_value, user_input)
@@ -685,32 +750,41 @@ class ChatBot:
         if self.state.startswith("MANAGE") or self.state.startswith("MODIFY"):
             return self.handle_management_flow(intent, matched_value, user_input)
 
+        # 3. DISPARADORES: Si no está en un flujo, revisa si el usuario quiere iniciar uno nuevo
         if intent == "reservas":
             self.state, self.reservation_details = states["AWAITING_STATE"], {}
             return "¡Claro! Empecemos. ¿Para qué estado de la república te gustaría reservar?"
 
-        # #############################################################################
-        # #####                     INICIO DE LA MEJORA                           #####
-        # #############################################################################
         if intent == "precios":
             self.state = states["PRICE_INQUIRY_POST"]
             price_list = "\n".join(
                 [f"    - {tipo}: ${precio:,.2f} MXN por noche" for tipo, precio in PRECIOS_POR_NOCHE.items()])
-            return f"¡Con gusto! Nuestras tarifas base son:\n{price_list}\n\nEstos precios pueden variar. ¿Te gustaría iniciar una reservación con alguna de estas opciones?"
-        # #############################################################################
-        # #####                       FIN DE LA MEJORA                            #####
-        # #############################################################################
+            return f"¡Con gusto! Nuestras tarifas base son:\n{price_list}\n\nEstos precios pueden variar. ¿Te gustaría iniciar una reservación?"
+
+        if intent == "checkin_checkout":
+            self.state = states["AWAITING_CHECKIN_LOCATION_CHOICE"]
+            return "¿Claro! ¿Deseas consultar los horarios para un estado específico o con tu folio de reservación?"
 
         if intent == "manage_reservation":
             self.state = states["MANAGE_AWAITING_FOLIO"]
             return "Con gusto te ayudo. Por favor, dime tu número de folio (ej. R12345), o di 'no tengo folio'."
 
-        if intent == "capture_name": self.user_name = matched_value.capitalize(); return f"¡Mucho gusto, {self.user_name}!"
-        if intent == "recall_name": return f"Claro, te llamas {self.user_name}." if self.user_name else "Aún no me has dicho tu nombre."
-        if intent == "despedida": self.state = states["END"]; return random.choice(intents["despedida"]["responses"])
-        if intent in intents and "responses" in intents.get(intent, {}): return random.choice(
-            intents[intent]["responses"])
+        # 4. MANEJO DE RESPUESTAS SIMPLES Y OTROS CASOS
+        if intent == "capture_name":
+            self.user_name = matched_value.capitalize()
+            return f"¡Mucho gusto, {self.user_name}!"
 
+        if intent == "recall_name":
+            return f"Claro, te llamas {self.user_name}." if self.user_name else "Aún no me has dicho tu nombre."
+
+        if intent == "despedida":
+            self.state = states["END"]
+            return random.choice(intents["despedida"]["responses"])
+
+        if "responses" in intents.get(intent, {}):
+            return random.choice(intents[intent]["responses"])
+
+        # 5. FALLBACK: Si nada coincide, da una respuesta genérica
         return random.choice(intents["fallback"]["responses"])
 
 
