@@ -1,0 +1,41 @@
+{
+    "saludos": {
+        "patterns": ["(?i)\\b(hola|buenas|buen(os)? ?(dias|tardes|noches)|hey|qu[eé] ?(onda|tal|hay|hubo)|q onda|quiubo|inicio|empezar|info)\\b"],
+        "responses": ["¡Hola! Soy el asistente virtual de Fiesta Inn. Estoy para servirle. Puede elegir una opción del menú o decirme directamente qué necesita."]
+    },
+    "reservas": {
+        "patterns": ["(?i)\\b(reservar|quiero una habitación|necesito un cuarto)\\b"],
+        "responses": ["¡Con gusto! Para iniciar su reservación, por favor indíqueme las fechas de su estancia."]
+    },
+    "precios": {
+        "patterns": ["(?i)\\b(precio|cu[aá]nto cuesta|tarifa[s]?|costo)\\b"],
+        "responses": ["Nuestras tarifas varían. ¿Está interesado en un tipo de habitación particular, como Sencilla o Doble?"]
+    },
+    "checkin_checkout": {
+        "patterns": ["(?i)\\b(check-?in|check-?out|entrada|salida|horario)\\b"],
+        "responses": ["El check-in es a las 3:00 PM y el check-out a la 1:00 PM. ¿Le interesa saber sobre la posibilidad de early check-in o late check-out?"]
+    },
+    "servicios": {
+        "patterns": ["(?i)\\b(servicios|qu[eé] ofrece|amenidades)\\b"],
+        "responses": ["Contamos con una amplia gama de servicios. ¿Desea saber sobre alguno en particular? (Ej: Wi-Fi, gimnasio, restaurante)"]
+    },
+    "ubicacion": {
+        "patterns": ["(?i)\\b(ubicaci[oó]n|direcci[oó]n|d[oó]nde est[aá]n|sucursal)\\b"],
+        "responses": ["¡Con gusto! Para encontrar el Fiesta Inn más cercano, ¿podría decirme en qué ciudad o colonia de la Ciudad de México se encuentra?"]
+    },
+    "capture_name": {
+        "patterns": [
+            "(?i)(?:mi nombre es|me llamo|soy)\\s+([A-Z][a-z]{2,})",
+            "^[A-Z][a-z]{2,}$"
+        ],
+        "responses": ["¡Mucho gusto, {name}! Ahora sí, ¿en qué puedo servirle?"]
+    },
+    "despedida": {
+        "patterns": ["(?i)\\b(gracias|adi[oó]s|hasta luego|bye|eso es todo|no gracias)\\b"],
+        "responses": ["Ha sido un placer atenderle. ¡Le deseamos un viaje exitoso!"]
+    },
+    "fallback": {
+        "patterns": [],
+        "responses": ["Disculpe, no he entendido su solicitud. ¿Podría intentar con algo más específico?"]
+    }
+}
