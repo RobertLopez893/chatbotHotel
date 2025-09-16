@@ -22,14 +22,15 @@ PRECIOS_POR_NOCHE = {
 HORARIOS_POR_ZONA = {
     "Noroeste": {"check_in": "1:00 PM", "check_out": "11:00 AM"},  # UTC-8
     "Pacífico": {"check_in": "2:00 PM", "check_out": "12:00 PM"},  # UTC-7
-    "Centro":   {"check_in": "3:00 PM", "check_out": "1:00 PM"},   # UTC-6
-    "Sureste":  {"check_in": "4:00 PM", "check_out": "2:00 PM"}    # UTC-5
+    "Centro": {"check_in": "3:00 PM", "check_out": "1:00 PM"},  # UTC-6
+    "Sureste": {"check_in": "4:00 PM", "check_out": "2:00 PM"}  # UTC-5
 }
 
 # --- ZONAS ---
 ESTADOS_POR_ZONA = {
     "baja california": "Noroeste",
-    "baja california sur": "Pacífico", "chihuahua": "Pacífico", "nayarit": "Pacífico", "sinaloa": "Pacífico", "sonora": "Pacífico",
+    "baja california sur": "Pacífico", "chihuahua": "Pacífico", "nayarit": "Pacífico", "sinaloa": "Pacífico",
+    "sonora": "Pacífico",
     "quintana roo": "Sureste"
     # El resto de estados caen en "Centro" por defecto
 }
@@ -43,6 +44,51 @@ ESTADOS_DE_MEXICO = [
     "querétaro", "quintana roo", "san luis potosí", "sinaloa", "sonora",
     "tabasco", "tamaulipas", "tlaxcala", "veracruz", "yucatán", "zacatecas"
 ]
+
+# #############################################################################
+# #####                     INICIO DE LA MEJORA                           #####
+# #############################################################################
+
+# --- UBICACIONES (Simulación de API/Base de Datos) ---
+# En el futuro, en lugar de este diccionario, llamarías a la API de Google Maps.
+HOTELES_POR_ESTADO = {
+    "aguascalientes": "Fiesta Inn Aguascalientes\n📍 Dirección: Avenida Mahatma Gandhi, Sur 302, Col. Villasunción, 20280 Aguascalientes, Ags.\n📞 Teléfono: +52 449 149 0200",
+    "baja california": "Fiesta Inn Tijuana Otay Aeropuerto\n📍 Dirección: Rampa Aeropuerto 16000, Aeropuerto, La Pechuga, 22000 Tijuana, B.C.\n📞 Teléfono: +52 664 979 1900",
+    # "baja california sur": "No se encontró sucursal Fiesta Inn en este estado.",
+    "campeche": "Fiesta Inn Ciudad del Carmen\n📍 Dirección: Av. Periférico Norte s/n, Av Concordia esq, Petrolera, 24170 Cdad. del Carmen, Camp.\n📞 Teléfono: +52 938 381 0200",
+    "chiapas": "Fiesta Inn Tuxtla Gutiérrez\n📍 Dirección: Av. Prolongación Anillo Circunvalación Sur 248, Santa Elena, 29060 Tuxtla Gutiérrez, Chis.\n📞 Teléfono: +52 961 617 1300",
+    "chihuahua": "Fiesta Inn Chihuahua Fashion Mall\n📍 Dirección: Av. De la Juventud 3501 Esq. con, Av. Instituto Politécnico Nacional, 31207 Chihuahua, Chih.\n📞 Teléfono: +52 614 432 6920",
+    "ciudad de méxico": "Fiesta Inn Ciudad de México Aeropuerto\n📍 Dirección: Blvd. Puerto Aéreo 502, Moctezuma 2da Secc, Venustiano Carranza, 15530 Ciudad de México, CDMX\n📞 Teléfono: +52 55 5133 6600",
+    "coahuila": "Fiesta Inn Saltillo\n📍 Dirección: Carr. Monterrey - Saltillo No. 6607, Zona Industrial, 25270 Saltillo, Coah.\n📞 Teléfono: +52 844 411 0000",
+    "colima": "Fiesta Inn Colima\n📍 Dirección: Prolongación, Blvrd Camino Real 1101 Col, El Diezmo, 28010 Colima, Col.\n📞 Teléfono: +52 312 316 4444",
+    "durango": "Fiesta Inn Express Durango\n📍 Dirección: Blvd. Felipe Pescador 1401, La Esperanza, 34080 Durango, Dgo.\n📞 Teléfono: +52 618 150 0900",
+    "guanajuato": "Fiesta Inn León\n📍 Dirección: Blvd. Adolfo López Mateos 2502, Jardines de Jerez, 37530 León de los Aldama, Gto.\n📞 Teléfono: +52 477 710 0500",
+    # "guerrero": "No se encontró sucursal Fiesta Inn en este estado.",
+    "hidalgo": "Fiesta Inn Pachuca Gran Patio\n📍 Dirección: Blvrd Luis Donaldo Colosio 2009, Los Jales, Ex-hacienda de Coscotitlán, 42064 Pachuca de Soto, Hgo.\n📞 Teléfono: +52 771 717 8540",
+    "jalisco": "Fiesta Inn Guadalajara Expo\n📍 Dirección: Av. Mariano Otero 1550 Col, Rinconada del Sol, 45055 Guadalajara, Jal.\n📞 Teléfono: +52 33 3669 3200",
+    "méxico": "Fiesta Inn Toluca Tollocan\n📍 Dirección: Paseo Tollocan Oriente esq, Francisco I Madero Sur 1132, Santa Ana Tlapaltitlán, 50160 Toluca, Méx.\n📞 Teléfono: +52 722 276 1000",
+    "michoacán": "Fiesta Inn Morelia Altozano\n📍 Dirección: Av Montaña Monarca 1000, Centro Comercial Altozano, 58093 Morelia, Mich.\n📞 Teléfono: +52 443 322 3150",
+    "morelos": "Fiesta Inn Cuernavaca\n📍 Dirección: Carretera México - Acapulco Km 88 S/N, Delicias, 62330 Cuernavaca, Mor.\n📞 Teléfono: +52 777 100 8200",
+    "nayarit": "Fiesta Inn Tepic\n📍 Dirección: Blvrd Luis Donaldo Colosio 580, Benito Juárez Ote, 63175 Tepic, Nay.\n📞 Teléfono: +52 311 129 5950",
+    "nuevo león": "Fiesta Inn Monterrey Fundidora\n📍 Dirección: Av. Churubusco #701, Esq. Prolongación, Fierro, 64590 Monterrey, N.L.\n📞 Teléfono: +52 81 8126 0500",
+    "oaxaca": "Fiesta Inn Oaxaca\n📍 Dirección: Avenida Universidad 140, Universidad, 68130 Oaxaca de Juárez, Oax.\n📞 Teléfono: +52 951 501 6000",
+    "puebla": "Fiesta Inn Parque Puebla\n📍 Dirección: Calz. Ignacio Zaragoza 410, Corredor Industrial la Ciénega, 72220 Puebla, Pue.\n📞 Teléfono: +52 222 408 1800",
+    "querétaro": "Fiesta Inn Querétaro\n📍 Dirección: Av. 5 de Febrero 108, Niños Heroes, 76010 Santiago de Querétaro, Qro.\n📞 Teléfono: +52 442 196 0000",
+    "quintana roo": "Fiesta Inn Cancún Las Américas\n📍 Dirección: Av. Bonampak Mz 1, 7, 77500 Cancún, Q.R.\n📞 Teléfono: +52 998 891 5650",
+    "san luis potosí": "Fiesta Inn San Luis Potosí Glorieta Juárez\n📍 Dirección: Av Benito Juarez 130, Prados Glorieta, 78390 San Luis Potosí, S.L.P.\n📞 Teléfono: +52 444 834 9494",
+    "sinaloa": "Fiesta Inn Culiacán\n📍 Dirección: J. Diego Valadez Poniente No. 1676, Desarrollo Urbano Tres Ríos, 80000 Culiacán Rosales, Sin.\n📞 Teléfono: +52 667 759 5900",
+    "sonora": "Fiesta Inn Express Hermosillo\n📍 Dirección: Blvd. Fco. Eusebio Kino 375, Lomas Pitic, 83010 Hermosillo, Son.\n📞 Teléfono: +52 662 289 2200",
+    "tabasco": "Fiesta Inn Villahermosa Cencali\n📍 Dirección: Benito Juárez García 105, Loma Linda, 86050 Villahermosa, Tab.\n📞 Teléfono: +52 993 313 6611",
+    "tamaulipas": "Fiesta Inn Tampico\n📍 Dirección: Av. Miguel Hidalgo 6106, Laguna de la Herradura, 89219 Tampico, Tamps.\n📞 Teléfono: +52 833 230 0500",
+    "tlaxcala": "Holiday Inn Tlaxcala (Alternativo)\n📍 Dirección: Carretera Tlaxcala-Apizaco Km 10 Santa María Atlihuetzia, 90459 Tlaxcala, Tlax.\n📞 Teléfono: +52 246 249 0900",
+    "veracruz": "Fiesta Inn Veracruz Boca del Río\n📍 Dirección: Blvd. Manuel Ávila Camacho S/N, Costa de Oro, 94299 Veracruz, Ver.\n📞 Teléfono: +52 229 923 1000",
+    "yucatán": "Fiesta Inn Mérida\n📍 Dirección: Calle 5 B No. 290 A x 20 A y 60, Col Revolución, 97115 Mérida, Yuc.\n📞 Teléfono: +52 999 964 3500",
+    "zacatecas": "Fiesta Inn Zacatecas\n📍 Dirección: Calzada Heroes de Chapultepec km 13 + 200 Col. La escondida, 98160 Zacatecas, Zac.\n📞 Teléfono: +52 492 491 4930"
+}
+# #############################################################################
+# #####                       FIN DE LA MEJORA                            #####
+# #############################################################################
+
 
 # --- INTENTS ---
 intents = {
@@ -140,24 +186,11 @@ intents = {
     "capture_full_name": {"patterns": [r"(?i)([A-ZÁÉÍÓÚÑ][a-zñáéíóú]+(?:\s[A-ZÁÉÍÓÚÑ][a-zñáéíóú]+)+)"]},
     "capture_email": {"patterns": [r"([\w\.-]+@[\w\.-]+\.\w{2,})"]},
     "capture_phone": {"patterns": [r"^\s*(\d{2}[-.\s]?\d{4}[-.\s]?\d{4})\s*$"]},
-
-    # #############################################################################
-    # #####                     INICIO DE LA MEJORA                           #####
-    # #############################################################################
     "precios": {
         "patterns": [r"(?i)\b(precio|cu[aá]nto cuesta|tarifa[s]?|costo)\b"],
-        # Se eliminan las respuestas estáticas para manejarlo con una función
     },
-    # #############################################################################
-    # #####                       FIN DE LA MEJORA                            #####
-    # #############################################################################
-
     "checkin_checkout": {
         "patterns": [r"(?i)\b(check-?in|check-out|entrada|salida|horario)\b"],
-        "responses": [
-            "El check-in es a las 3:00 PM y el check-out es a la 1:00 PM.",
-            "La hora de entrada es a las 15:00 y la salida a las 13:00. Avísame si tienes otra duda."
-        ]
     },
     "servicios": {
         "patterns": [r"(?i)\b(servicios|qu[eé] ofrece|amenidades)\b"],
@@ -168,10 +201,6 @@ intents = {
     },
     "ubicacion": {
         "patterns": [r"(?i)\b(ubicaci[oó]n|direcci[oó]n|d[oó]nde est[aá]n|sucursal)\b"],
-        "responses": [
-            "¡Con gusto! Para darte la dirección del Fiesta Inn más cercano, ¿podrías decirme en qué ciudad te encuentras?",
-            "Claro, para ayudarte a encontrarnos, ¿me puedes indicar tu ciudad o colonia de interés?"
-        ]
     },
     "capture_name": {
         "patterns": [
@@ -230,6 +259,10 @@ states = {
     "AWAITING_CHECKIN_LOCATION_CHOICE": "AWAITING_CHECKIN_LOCATION_CHOICE",
     "AWAITING_CHECKIN_STATE": "AWAITING_CHECKIN_STATE",
     "AWAITING_CHECKIN_FOLIO": "AWAITING_CHECKIN_FOLIO",
+    # Flujos para ubicaciones
+    "AWAITING_LOCATION_CHOICE": "AWAITING_LOCATION_CHOICE",
+    "AWAITING_LOCATION_STATE": "AWAITING_LOCATION_STATE",
+    "AWAITING_LOCATION_FOLIO": "AWAITING_LOCATION_FOLIO",
 }
 
 
@@ -728,11 +761,57 @@ class ChatBot:
 
         return random.choice(intents["fallback"]["responses"])
 
+    def handle_location_flow(self, intent, matched_value, user_input):
+        if self.state == states["AWAITING_LOCATION_CHOICE"]:
+            if "estado" in user_input.lower():
+                self.state = states["AWAITING_LOCATION_STATE"]
+                return "¿Perfecto, de qué estado de la república necesitas la ubicación?"
+            elif "folio" in user_input.lower():
+                self.state = states["AWAITING_LOCATION_FOLIO"]
+                return "Claro, por favor, dime tu número de folio (ej. R12345)."
+            else:
+                return "Por favor, elige una opción: 'por estado' o 'por folio'."
+
+        elif self.state == states["AWAITING_LOCATION_STATE"]:
+            normalized_input = user_input.lower().replace("cdmx", "ciudad de méxico")
+            # AQUÍ HARÍAS LA LLAMADA A LA API DE GOOGLE MAPS USANDO `normalized_input`
+            hotel_info = HOTELES_POR_ESTADO.get(normalized_input)
+
+            self.state = states["GENERAL"]
+            if hotel_info:
+                return f"¡Encontrado! Aquí tienes la información del hotel en {user_input.title()}:\n\n{hotel_info}"
+            else:
+                return f"Lo siento, no encontré una sucursal en '{user_input.title()}'. Puedes intentar con otro estado."
+
+        elif self.state == states["AWAITING_LOCATION_FOLIO"]:
+            if intent == "capture_folio":
+                reservations = find_reservations(folio=matched_value)
+                if reservations:
+                    estado_reservado = reservations[0].get("estado", "").lower()
+
+                    # Y AQUÍ TAMBIÉN, USANDO `estado_reservado`
+                    hotel_info = HOTELES_POR_ESTADO.get(estado_reservado)
+                    self.state = states["GENERAL"]
+
+                    if hotel_info:
+                        return f"Según tu folio, tu hotel está en {estado_reservado.title()}. Aquí tienes los datos:\n\n{hotel_info}"
+                    else:
+                        return f"Encontré tu reservación para {estado_reservado.title()}, pero no tengo la dirección exacta de esa sucursal en mi sistema."
+                else:
+                    self.state = states["GENERAL"]
+                    return "No encontré ninguna reserva con ese folio. Volviendo al menú principal."
+            else:
+                self.state = states["GENERAL"]
+                return "Eso no parece un folio válido. Volviendo al menú principal."
+
+        return random.choice(intents["fallback"]["responses"])
+
     def handle_message(self, user_input):
         intent, matched_value = self.find_match(user_input)
 
         # 1. Revisa si el usuario quiere cancelar la acción actual
-        if intent == "cancel_action" and (self.state.startswith(("AWAITING", "MANAGE", "MODIFY", "PRICE", "CHECKIN"))):
+        if intent == "cancel_action" and (
+        self.state.startswith(("AWAITING", "MANAGE", "MODIFY", "PRICE", "CHECKIN", "LOCATION"))):
             self.state, self.reservation_details, self.active_reservation, self.temp_data = states[
                 "GENERAL"], {}, None, {}
             return "Proceso cancelado. ¿Te puedo ayudar con otra cosa?"
@@ -740,6 +819,9 @@ class ChatBot:
         # 2. ENRUTADOR: Si ya está en un flujo, dirige a la función correcta
         if self.state.startswith("PRICE"):
             return self.handle_price_flow(intent, matched_value, user_input)
+
+        if self.state.startswith("AWAITING_LOCATION_"):
+            return self.handle_location_flow(intent, matched_value, user_input)
 
         if self.state.startswith("AWAITING_CHECKIN_"):
             return self.handle_checkin_flow(intent, matched_value, user_input)
@@ -763,7 +845,11 @@ class ChatBot:
 
         if intent == "checkin_checkout":
             self.state = states["AWAITING_CHECKIN_LOCATION_CHOICE"]
-            return "¿Claro! ¿Deseas consultar los horarios para un estado específico o con tu folio de reservación?"
+            return "¡Claro! ¿Deseas consultar los horarios para un estado específico o con tu folio de reservación?"
+
+        if intent == "ubicacion":
+            self.state = states["AWAITING_LOCATION_CHOICE"]
+            return "¡Por supuesto! Puedo darte la dirección de nuestras sucursales. ¿Prefieres buscar por estado o con tu folio de reservación?"
 
         if intent == "manage_reservation":
             self.state = states["MANAGE_AWAITING_FOLIO"]
@@ -798,12 +884,12 @@ Puedo ayudarte con lo siguiente:
     📝 Gestionar una reservación (modificar, cancelar)
     💰 Consultar precios y tarifas
     🛎️ Horarios de Check-in y Check-out
+    📍 Encontrar la ubicación de un hotel
 
 Escribe lo que necesites o elige una opción.
 ---------------------------------------------------------
 """
 
-"""
 if __name__ == "__main__":
     bot = ChatBot()
     print(welcome_menu)
@@ -819,4 +905,3 @@ if __name__ == "__main__":
 
         if bot.state == states["END"]:
             break
-"""
