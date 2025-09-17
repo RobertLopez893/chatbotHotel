@@ -1,3 +1,14 @@
+# Práctica 3: Chatbot
+"""
+Integrantes:
+Corona Hernández Martín Rafael
+Díaz Villegas Ramón Alexis
+Flores Cedillo Rubén Antonio
+Leyva Triana Isis Valeria
+López Reyes José Roberto
+Torres Cortes Carlos Fernando
+"""
+
 import random
 import re
 import csv
@@ -505,7 +516,9 @@ class ChatBot:
         self.price_quote = {}
 
     def find_match(self, user_message):
-        # El bloque especial para "menu_option" se ha eliminado.
+        if self.state.startswith("AWAITING_SERVICE_"):
+            if match := re.search(intents['service_detail_query']['patterns'][0], user_message, re.IGNORECASE):
+                return "service_detail_query", match.group(1)
 
         if self.state in ["AWAITING_GUEST_EMAIL", "MANAGE_AWAITING_EMAIL"]: return "capture_email", user_message
         if self.state == "AWAITING_GUEST_PHONE": return "capture_phone", user_message
