@@ -1,3 +1,6 @@
 folio,nombre_huesped,email,telefono,estado,check_in,check_out,adultos,ninos,tipo_habitacion,num_habitaciones,costo_total
 R55266,Rob,rob@gmail.com,5560689360,Baja California,2025-09-17,2025-11-08,8,9,Doble,3,343200
 R17564,Mark,mark@gmial.com,8080808080,Baja California,2025-09-17,2025-11-09,7,1,Suite,1,185500
+R88482,Roberto Lopez,lopez.reyes@gmail.com,5560696969,Tabasco,2025-09-19,2025-09-21,2,0,Sencilla,1,3000
+R42562,Rober,rob@gmail.com,5560606060,Aguascalientes,2025-09-17,2025-09-19,5,0,Sencilla,7,21000
+R37622,Robert,rober@gmail.com,5506060606,Tabasco,2025-09-23,2025-12-22,6,0,Sencilla,1,140850
