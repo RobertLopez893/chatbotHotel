@@ -155,6 +155,12 @@ intents = {
             "Hola, gracias por contactarnos. ¿Cómo puedo asistirte?"
         ]
     },
+    "manage_reservation": {
+        "patterns": [
+            # MEJORA: Entiende la gestión de "reservación" o "reservaciones"
+            r"(?i)(^\s*3\s*$|\b(modificar|cambiar|consultar|ver|eliminar|cancelar|gestionar).*(reserva(ci[oó]n(es)?)?|estancia)\b)"
+        ],
+    },
     "reservas": {
         "patterns": [
             # MEJORA: Ahora entiende "reserva", "reservación" y "reservaciones"
@@ -165,12 +171,6 @@ intents = {
         "patterns": [
             # MEJORA: Añadido el plural "precios" y "costos"
             r"(?i)(^\s*2\s*$|\b(precio[s]?|cu[aá]nto cuesta|tarifa[s]?|costo[s]?|cotiza|cu[aá]nto vale|informes)\b)"
-        ],
-    },
-    "manage_reservation": {
-        "patterns": [
-            # MEJORA: Entiende la gestión de "reservación" o "reservaciones"
-            r"(?i)(^\s*3\s*$|\b(modificar|cambiar|consultar|ver|eliminar|cancelar|gestionar).*(reserva(ci[oó]n(es)?)?|estancia)\b)"
         ],
     },
     "checkin_checkout": {
@@ -343,7 +343,6 @@ states = {
     "AWAITING_SERVICE_ESTACIONAMIENTO": "AWAITING_SERVICE_ESTACIONAMIENTO",
     "AWAITING_SERVICE_WIFI": "AWAITING_SERVICE_WIFI",
     "AWAITING_SERVICE_ROOMSERVICE": "AWAITING_SERVICE_ROOMSERVICE",
-    # Nuevos estados para cotización
     "AWAITING_ROOM_FOR_PRICES": "AWAITING_ROOM_FOR_PRICES",
     "AWAITING_PRICE_CHECKIN": "AWAITING_PRICE_CHECKIN",
     "AWAITING_PRICE_CHECKOUT": "AWAITING_PRICE_CHECKOUT",
